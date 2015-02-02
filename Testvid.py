@@ -1,16 +1,14 @@
 import cv2
 
-imagePath = 'testimg.jpg'
-
 # Create the haar cascade
 faceCascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
 eyesCascade = cv2.CascadeClassifier('haarcascade_eye.xml')
 
 cap = cv2.VideoCapture(0)
-cap.set(3,640)
-cap.set(4,480)
+cap.set(3,640) #defines video width
+cap.set(4,480) #defines video height
 
-analyse = 1
+analyse = 1 #counter 
 while True:
     # Capture frame-by-frame
     ret, frame = cap.read()
@@ -45,8 +43,8 @@ while True:
             print(x, y, w, h)
         analyse += 1
 
-    elif analyse <= 10: analyse += 1; #print(analyse)
-    else: analyse -= 10; #print(analyse)
+    elif analyse <= 1: analyse += 1; #print(analyse)
+    else: analyse -= 1; #print(analyse)
 
         # Draw a rectangle around the faces
     if len(faces) == 0:
