@@ -1,7 +1,7 @@
 import cv2
 import sys
 import serial
-ser = serial.Serial('/dev/cu.usbmodem1411', 115200) # Establish the connection on a specific port
+#ser = serial.Serial('/dev/cu.usbmodem1421', 115200) # Establish the connection on a specific port
 
 def findfaces(grayframe):
     '''
@@ -94,22 +94,27 @@ def mvt_filter(offset):
     '''
     Description: returns offset if above sensibility threshold
     ----------------------------------------
-    Input: offset (tuple)
-    Output: offset (tuple) or None
+    Input: offset (list of tuples)
+    Output: offset (list of tuples) or None
     ----------------------------------------
     '''
     L = list()
     for i in range(len(offset)):
         if len(offset[i]) > 0:
-            if abs(offset[i][0]) > 40 or abs(offset[i][1]) > 40:
-                L = L + [offset[i]]
-    if L != list (): return L
+            if abs(offset[i][0]) > 40: rt1 = offset[i][0]
+            else: rt1 = 0
+            if abs(offset[i][1]) > 40: rt2 = offset[i][1]
+            else: rt2 = 0
+            
+            if rt1 != 0 or rt2 != 0: L = L + [(rt1,rt2)]
 
-def send_arduino(angle):
-    ser.write(str(angle)+"\n")
+    if L != list(): return L
+
+def send_arduino(instructions):
+    ser.write(instructions+"\n")
     #Serial.print(str(angle)+"\n")
 
-def main(a_intvl,width, height, display, angle):
+def main(a_intvl,width, height, display, angle1, angle2):
     # Create the haar cascade
     global faceCascade
     global eyesCascade
@@ -156,9 +161,16 @@ def main(a_intvl,width, height, display, angle):
 
             f = mvt_filter(offset(center(w, h), faces))
             if f: 
-                print f
-                if f[0][0] > 0: angle -= 20; send_arduino(angle)
-                if f[0][0] < 0: angle += 20; send_arduino(angle)
+
+                if f[0][0] > 0: angle1 -= 5
+                elif f[0][0] < 0: angle1 += 5
+                instructions = str(angle1)
+
+                if f[0][1] > 0: angle2 -= 2
+                elif f[0][1] < 0: angle2 += 2
+                instructions = instructions + ',' + str(angle2)
+
+                print instructions
 
             analyse += 1
 
@@ -194,9 +206,10 @@ if __name__ == "__main__":
     except: width = 600
     try: height = (int(sys.argv[4]))
     except: height = 480
-    angle = 90
-    ser.write(str(angle)+"\n")
+    angle1 = 90
+    angle2 = 0
+    #ser.write(str(angle)+"\n")
 
 
-    main(a_intvl, width, height, display, angle)
+    main(a_intvl, width, height, display, angle1, angle2)
 
