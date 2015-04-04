@@ -1,7 +1,7 @@
 import cv2
 import sys
 import serial
-#ser = serial.Serial('/dev/cu.usbmodem1421', 115200) # Establish the connection on a specific port
+ser = serial.Serial('COM3', 115200) # Establish the connection on a specific port
 
 def findfaces(grayframe):
     '''
@@ -13,7 +13,7 @@ def findfaces(grayframe):
     '''
     return faceCascade.detectMultiScale(
                 grayframe,
-                scaleFactor=1.1, 
+                scaleFactor=1.2, 
                 minNeighbors=5,
                 minSize=(60, 60),
                 flags=cv2.cv.CV_HAAR_SCALE_IMAGE
@@ -162,15 +162,15 @@ def main(a_intvl,width, height, display, angle1, angle2):
             f = mvt_filter(offset(center(w, h), faces))
             if f: 
 
-                if f[0][0] > 0: angle1 -= 5
-                elif f[0][0] < 0: angle1 += 5
+                if f[0][0] > 0: angle1 -= 4
+                elif f[0][0] < 0: angle1 += 4
                 instructions = str(angle1)
 
-                if f[0][1] > 0: angle2 -= 2
-                elif f[0][1] < 0: angle2 += 2
+                if f[0][1] > 0: angle2 += 2
+                elif f[0][1] < 0: angle2 -= 2
                 instructions = instructions + ',' + str(angle2)
 
-                print instructions
+                send_arduino(instructions)
 
             analyse += 1
 
@@ -207,9 +207,8 @@ if __name__ == "__main__":
     try: height = (int(sys.argv[4]))
     except: height = 480
     angle1 = 90
-    angle2 = 0
-    #ser.write(str(angle)+"\n")
+    angle2 = 100
+    ser.write(str(angle1)+','+str(angle2)+"\n")
 
 
     main(a_intvl, width, height, display, angle1, angle2)
-
