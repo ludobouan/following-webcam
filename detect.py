@@ -135,7 +135,7 @@ def main(a_intvl,width, height, display, angle1, angle2):
 
     # Set counter
     # (Frames will only be analysed if analyse = 1)
-    image = 1
+    image = a_intvl
 
     # Run code until user quits
     while True:
@@ -177,7 +177,7 @@ def main(a_intvl,width, height, display, angle1, angle2):
 
                 send_arduino(instructions)
                 print(instructions)
-            image += l;
+        image += l;
 
 
         # Draw a rectangle around the faces and eyes
