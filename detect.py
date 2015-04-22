@@ -77,6 +77,7 @@ def offset(centers, elements):
         xoff = xoff + [x+(w/2)-centers[0]]
     for (x, y, w, h) in elements:
         yoff = yoff + [y+(h/2)-centers[1]]
+    print(zip(xoff,yoff))
     return zip(xoff,yoff)
 
 def face_filter():
@@ -101,9 +102,9 @@ def mvt_filter(offset):
     L = list()
     for i in range(len(offset)):
         if len(offset[i]) > 0:
-            if abs(offset[i][0]) > 40: rt1 = offset[i][0]
+            if abs(offset[i][0]) > 10: rt1 = offset[i][0]
             else: rt1 = 0
-            if abs(offset[i][1]) > 40: rt2 = offset[i][1]
+            if abs(offset[i][1]) > 10: rt2 = offset[i][1]
             else: rt2 = 0
             
             if rt1 != 0 or rt2 != 0: L = L + [(rt1,rt2)]
@@ -123,6 +124,7 @@ def main(a_intvl,width, height, display, angle1, angle2):
 
     w = width
     h = height
+    k = 0.074794
     print(w)
     print(h)
 
@@ -161,16 +163,20 @@ def main(a_intvl,width, height, display, angle1, angle2):
 
             f = mvt_filter(offset(center(w, h), faces))
             if f: 
-
-                if f[0][0] > 0: angle1 -= 4
-                elif f[0][0] < 0: angle1 += 4
+                
+#                if f[0][0] > 0: angle1 -= 10
+#                elif f[0][0] < 0: angle1 += 10
+                
+                angle1 -= int(k*(sum([f[n][0] for n in range(len(f))])/len(f)))              
                 instructions = str(angle1)
 
-                if f[0][1] > 0: angle2 += 2
-                elif f[0][1] < 0: angle2 -= 2
+#                if f[0][1] > 0: angle2 += 4
+#                elif f[0][1] < 0: angle2 -= 4
+                angle2 += int(k*(sum([f[n][1] for n in range(len(f))])/len(f)))
                 instructions = instructions + ',' + str(angle2)
 
                 send_arduino(instructions)
+                print(instructions)
 
             analyse += 1
 
@@ -203,11 +209,11 @@ if __name__ == "__main__":
     try: display = bool(int(sys.argv[2]))
     except: display = bool(int(raw_input("Display ? (Y=1 / N=0) ")))
     try: width = (int(sys.argv[3]))
-    except: width = 600
+    except: width = 640
     try: height = (int(sys.argv[4]))
     except: height = 480
     angle1 = 90
-    angle2 = 100
+    angle2 = 115
     ser.write(str(angle1)+','+str(angle2)+"\n")
 
 
