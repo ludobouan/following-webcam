@@ -135,7 +135,7 @@ def main(a_intvl,width, height, display, angle1, angle2):
 
     # Set counter
     # (Frames will only be analysed if analyse = 1)
-    analyse = 1
+    image = 1
 
     # Run code until user quits
     while True:
@@ -143,8 +143,8 @@ def main(a_intvl,width, height, display, angle1, angle2):
         # Capture frame-by-frame
         ret, frame = vid.read()
 
-        if analyse == 1: # If frame is to be analysed
-
+        if image = a_intvl: # If frame is to be analysed
+            image = 0
             # Make grayscale
             grayframe = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
@@ -177,12 +177,7 @@ def main(a_intvl,width, height, display, angle1, angle2):
 
                 send_arduino(instructions)
                 print(instructions)
-
-            analyse += 1
-
-        # Increase / Reset counter
-        elif analyse <= a_intvl: analyse += 1; 
-        else: analyse -= a_intvl;
+        image += l;
 
 
         # Draw a rectangle around the faces and eyes
