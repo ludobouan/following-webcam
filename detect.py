@@ -177,7 +177,7 @@ def main(a_intvl,width, height, display, angle1, angle2):
 
                 send_arduino(instructions)
                 print(instructions)
-        image += l;
+            image += l;
 
 
         # Draw a rectangle around the faces and eyes
