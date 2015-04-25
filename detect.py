@@ -1,14 +1,14 @@
 import cv2
 import sys
 import serial
-ser = serial.Serial('COM3', 115200) # Establish the connection on a specific port
+ser = serial.Serial('COM3', 115200) # Parametres de connexion avec le port serial
 
 def findfaces(grayframe):
     '''
-    Description: Finds the faces in the frame
+    Description: Trouve les visages dans l'image
     -----------------------------------------
-    Input: image in grayscale
-    Output: List of tuples (x, y, w, h)
+    Entrée: Image en nuances de gris
+    Sortie: Liste des visages (liste de tuples: (x, y, largeur, hauteur))
     -----------------------------------------
     '''
     return faceCascade.detectMultiScale(
@@ -22,10 +22,10 @@ def findfaces(grayframe):
 
 def findeyes (grayframe):
     '''
-    Description: Finds the eyes in the frame
+    Description: Trouve les yeux dans l'image
     ----------------------------------------
-    Input: image in grayscale
-    Output: List of tuples (x, y, w, h)
+    Entrée: Image en nuance de gris
+    Sortie: Liste des yeux (liste de tuples: (x, y, largeur, hauteur))
     ----------------------------------------
     '''
     return eyesCascade.detectMultiScale(
@@ -38,9 +38,13 @@ def findeyes (grayframe):
 
 def disp(frame, faces, eyes):
     '''
-    Description: Draws colored boxes around eyes and faces
+    Description: Encadre les élements détectés
     ----------------------------------------
-    Input: image; list of tuples of faces (x, y, w, h); list of tuples of eyes (x, y, w, h)
+    Entrée: Image
+            Liste des visages (liste de tuples: (x, y, largeur, hauteur))
+            Liste des yeux (liste de tuples: (x, y, l, h))
+    Sortie: Image avec visages encadrés en vert
+            et les yeux encadrés en jaune
     ----------------------------------------
     '''
     if len(faces) == 0:
@@ -55,20 +59,20 @@ def disp(frame, faces, eyes):
 
 def center(width, height):
     '''
-    Description: finds center of video
+    Description: Trouve le centre de la video
     ----------------------------------------
-    Input: width (int); height (int)
-    Output: tuple of center (x,y)
+    Entrée: largeur (int); hauteur (int)
+    Sortie: tuple du center (x,y)
     ----------------------------------------
     '''
     return (width/2, height/2)
 
 def offset(centers, elements):
     '''
-    Description: finds offset between center and elements
+    Description: Trouve le decalage etre le centre et les elements
     ----------------------------------------
-    Input: centers (tuple), elements (list of tulpes)
-    Output: list of offsets (list of tuples)
+    Entrée: Centres (tuple); Elements (liste de tulpes)
+    Sortie: Liste de decalages (liste de tuples)
     ----------------------------------------
     '''
     xoff = list()
@@ -80,23 +84,12 @@ def offset(centers, elements):
     print(zip(xoff,yoff))
     return zip(xoff,yoff)
 
-def face_filter():
-    '''
-    Analyses elements in last 10 frames
-    Input: elements to add, 
-    '''
-    #Remove frame(-10)
-
-    #Add frame(0)
-
-    #For each face
-
 def mvt_filter(offset):
     '''
-    Description: returns offset if above sensibility threshold
+    Description: Renvoi le decalage seulement si il est assez important
     ----------------------------------------
-    Input: offset (list of tuples)
-    Output: offset (list of tuples) or None
+    Entrée: Decalage (liste de tuples)
+    Sortie: Decalage (liste de tuples) ou rien
     ----------------------------------------
     '''
     L = list()
@@ -112,50 +105,54 @@ def mvt_filter(offset):
     if L != list(): return L
 
 def send_arduino(instructions):
+    '''
+    Description: Etabli la connection avec le port serial et envoi le string fourni
+    ----------------------------------------
+    Input: Instructions (string)
+    Output: Serial
+    ----------------------------------------
+    '''
     ser.write(instructions+"\n")
-    #Serial.print(str(angle)+"\n")
 
 def main(a_intvl,width, height, display, angle1, angle2):
-    # Create the haar cascade
+    # Importer les haar-cascades
     global faceCascade
     global eyesCascade
     faceCascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
     eyesCascade = cv2.CascadeClassifier('haarcascade_eye.xml')
 
-    w = width
-    h = height
-    k = 0.074794
-    print(w)
-    print(h)
+    k = 0.074794 #
+    print(width)
+    print(height)
 
 
     vid = cv2.VideoCapture(0)
-    vid.set(3,w) # Defines video width
-    vid.set(4,h) # Defines video height
+    vid.set(3,w) # Defini la largeur de la video
+    vid.set(4,h) # Defini la hauteur de la video
 
-    # Set counter
-    # (Frames will only be analysed if analyse = 1)
-    image = a_intvl
+    # Defini le compteur
+    # (Les images sont analysé seulement si analyse = 1)
+    analyse = 1
 
-    # Run code until user quits
+    # Boucle infini (interrompu par l'utilisateur par la touche 'q')
     while True:
 
-        # Capture frame-by-frame
+        # Capturer la video image par image
         ret, frame = vid.read()
 
-        if image = a_intvl: # If frame is to be analysed
-            image = 0
-            # Make grayscale
+        if analyse == 1: # Si l'image est à analysé
+            
+            # Faire une copie de l'image en nuances de gris
             grayframe = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-            # Find faces in image
+            # Trouver les visages
             faces = findfaces(grayframe)
 
-            # If there are no faces in frame, search for eyes
+            # Si il n'y a pas de visages, chercher les yeux dans toute l'image
             if len(faces) == 0:
                 eyes = findeyes(grayframe)
 
-            # If there are faces in frame, search for eyes on faces
+            # Si il y a des visages, chercher les yeux dans le cadre des visages
             else:
                 for (xf, yf, wf, hf) in faces:
                     fsection_grayframe = grayframe[yf:yf+hf, xf:xf+wf]
@@ -163,36 +160,43 @@ def main(a_intvl,width, height, display, angle1, angle2):
 
             f = mvt_filter(offset(center(w, h), faces))
             if f: 
-                
+                # Methode 2
 #                if f[0][0] > 0: angle1 -= 10
 #                elif f[0][0] < 0: angle1 += 10
                 
+                # Methode 1
                 angle1 -= int(k*(sum([f[n][0] for n in range(len(f))])/len(f)))              
                 instructions = str(angle1)
 
+                # Methode 2
 #                if f[0][1] > 0: angle2 += 4
 #                elif f[0][1] < 0: angle2 -= 4
+
+                # Methode 1
                 angle2 += int(k*(sum([f[n][1] for n in range(len(f))])/len(f)))
                 instructions = instructions + ',' + str(angle2)
 
                 send_arduino(instructions)
                 print(instructions)
-        image += l;
+        
+            analyse += 1
+        
+        # Augmenter / Remettre à 0 la variable compteur
+        elif analyse <= a_intvl: analyse += 1; 
+        else: analyse -= a_intvl;
 
-
-        # Draw a rectangle around the faces and eyes
+        # Encadrer les elements detectés
         disp(frame, faces, eyes)
 
-        # Display the resulting frame
-
+        # Afficher l'image analysée
         if display:
             cv2.imshow('Video', frame)
 
-        # Quit loop when 'q' is pressed
+        # Quitter la boucle quand la touche 'q' est enfoncée
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
-    # When everything is done, release the capture
+    # Quand tout est finie, fermer l'affichage et detruire les variables
     ser.close()
     video_capture.release()
     cv2.destroyAllWindows()
