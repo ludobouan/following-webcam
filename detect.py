@@ -1,7 +1,21 @@
-import cv2
+####################
+# Localistion d'objet par analyse d'image
+# Ludovic Bouan et Thomas Lefort
+# TIPE 2015 - ECAM Lyon
+####################
+
+
+# Importer les modules et biblioteques necessaires
 import sys
 import serial
-ser = serial.Serial('COM3', 115200) # Parametres de connexion avec le port serial
+import cv2
+
+# Parametres de connexion avec le port serial
+ser = serial.Serial('COM3', 115200)
+
+
+
+########### FONCTIONS ##########
 
 def findfaces(grayframe):
     '''
@@ -12,13 +26,12 @@ def findfaces(grayframe):
     -----------------------------------------
     '''
     return faceCascade.detectMultiScale(
-                grayframe,
-                scaleFactor=1.2, 
-                minNeighbors=5,
-                minSize=(60, 60),
-                flags=cv2.cv.CV_HAAR_SCALE_IMAGE
+                grayframe,                          # Image à analysé
+                scaleFactor=1.2,                    # Facteur d'agrandissement
+                minNeighbors=5,                     # Nombre minimale de voisins
+                minSize=(60, 60),                   # Taille minimum d'un visage
+                flags=cv2.cv.CV_HAAR_SCALE_IMAGE    # Fichier cascade
             )
-
 
 def findeyes (grayframe):
     '''
@@ -29,12 +42,12 @@ def findeyes (grayframe):
     ----------------------------------------
     '''
     return eyesCascade.detectMultiScale(
-                    grayframe,
-                    scaleFactor=1.3,
-                    minNeighbors=5,
-                    minSize=(20, 20),
-                    flags=cv2.cv.CV_HAAR_SCALE_IMAGE
-                )
+                grayframe,                          # Image à analysé
+                scaleFactor=1.3,                    # Facteur d'agrandissement
+                minNeighbors=5,                     # Nombre minimale de voisins
+                minSize=(20, 20),                   # Taille minimum d'un visage
+                flags=cv2.cv.CV_HAAR_SCALE_IMAGE    # Fichier cascade
+            )
 
 def disp(frame, faces, eyes):
     '''
@@ -47,15 +60,22 @@ def disp(frame, faces, eyes):
             et les yeux encadrés en jaune
     ----------------------------------------
     '''
+    # Si il n'y a pas de visages
     if len(faces) == 0:
+        # Encadrer en jaune tout les yeux detectés (le cadre a pour epaisseur 2 pixels)
         for(ex,ey,ew,eh) in eyes:
             cv2.rectangle(frame,(ex,ey),(ex+ew,ey+eh),(255,255,0),2)
+
+    #Si il y a des visages
     else :
+        # Encadrer en vert tout les yeux detectés
         for (x, y, w, h) in faces:
             cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
             roi_color = frame[y:y+h, x:x+w]
-            for(ex,ey,ew,eh) in eyes:
-                cv2.rectangle(roi_color,(ex,ey),(ex+ew,ey+eh),(255,255,0),2)
+
+        # Encadrer en jaune tout les yeux detectés
+        for(ex,ey,ew,eh) in eyes:
+            cv2.rectangle(roi_color,(ex,ey),(ex+ew,ey+eh),(255,255,0),2)
 
 def center(width, height):
     '''
@@ -75,13 +95,16 @@ def offset(centers, elements):
     Sortie: Liste de decalages (liste de tuples)
     ----------------------------------------
     '''
+    # Creer des list vides
     xoff = list()
     yoff = list()
+
+    # Pour chaque element, calculer la difference entre son centre et le centre de la video en x puis en y
     for (x, y, w, h) in elements:
         xoff = xoff + [x+(w/2)-centers[0]]
-    for (x, y, w, h) in elements:
         yoff = yoff + [y+(h/2)-centers[1]]
-    print(zip(xoff,yoff))
+
+    # Renvoyer une list de tuple dans lequel le ieme tuple contient le ieme element de xoff et le ieme element de yoff
     return zip(xoff,yoff)
 
 def mvt_filter(offset):
@@ -92,14 +115,20 @@ def mvt_filter(offset):
     Sortie: Decalage (liste de tuples) ou rien
     ----------------------------------------
     '''
+    # Creer une list vide
     L = list()
+    
+    # Pour chaque element dans la list offset
     for i in range(len(offset)):
         if len(offset[i]) > 0:
+            # Si le decalage en x de cet element est superieur a 10, rt1 prend la valeur de ce décalage, sinon 0
             if abs(offset[i][0]) > 10: rt1 = offset[i][0]
             else: rt1 = 0
+            # Si le decalage en y de cet element est superieur a 10, rt2 prend la valeur de ce décalage, sinon 0
             if abs(offset[i][1]) > 10: rt2 = offset[i][1]
             else: rt2 = 0
             
+            # Si rt1 ou rt2 different de 0, ajouter ce couple à la list L
             if rt1 != 0 or rt2 != 0: L = L + [(rt1,rt2)]
 
     if L != list(): return L
@@ -113,35 +142,44 @@ def send_arduino(instructions):
     ----------------------------------------
     '''
     ser.write(instructions+"\n")
+    
+
+
+########## BOUCLE PRINCIPALE ##########
 
 def main(a_intvl,width, height, display, angle1, angle2):
-    # Importer les haar-cascades
+
+    # Faire des cascades des variables globals
     global faceCascade
     global eyesCascade
+
+    # Importer les haarcascades
     faceCascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
     eyesCascade = cv2.CascadeClassifier('haarcascade_eye.xml')
 
-    k = 0.074794 #
-    print(width)
-    print(height)
+    # Definir la constante de proportionalité k
+    # Cette valeur est obtenu expérimentalement
+    k = 0.07
 
-
+    # Capturer la video
     vid = cv2.VideoCapture(0)
-    vid.set(3,w) # Defini la largeur de la video
-    vid.set(4,h) # Defini la hauteur de la video
+
+    # Definir les dimensions de la video
+    vid.set(3,width)
+    vid.set(4,height)
 
     # Defini le compteur
-    # (Les images sont analysé seulement si analyse = 1)
     analyse = 1
 
     # Boucle infini (interrompu par l'utilisateur par la touche 'q')
     while True:
 
-        # Capturer la video image par image
+        # Lire la video image par image
         ret, frame = vid.read()
 
-        if analyse == 1: # Si l'image est à analysé
-            
+        # Si l'image est à analysé
+        if analyse == 1:
+
             # Faire une copie de l'image en nuances de gris
             grayframe = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
@@ -158,13 +196,21 @@ def main(a_intvl,width, height, display, angle1, angle2):
                     fsection_grayframe = grayframe[yf:yf+hf, xf:xf+wf]
                     eyes = findeyes(fsection_grayframe)
 
-            f = mvt_filter(offset(center(w, h), faces))
+            # Definir f comme la list des decalages seulement si le decalage est assez important
+            f = mvt_filter(offset(center(width, height), faces))
+
+            # Si f existe
             if f: 
-                # Methode 2
+
+                ##### Methode 2 #####
+                #Selon le sign du decalage, diminuer ou augmenter l'angle
 #                if f[0][0] > 0: angle1 -= 10
 #                elif f[0][0] < 0: angle1 += 10
-                
-                # Methode 1
+
+                ##### Methode 1 #####
+                # Calculer de la moyenne des decalages horizontaux
+                # Multiplier cette moyenne par k
+                # Arrondir ce resultat et la soustraire a l'angle du moteur 
                 angle1 -= int(k*(sum([f[n][0] for n in range(len(f))])/len(f)))              
                 instructions = str(angle1)
 
@@ -178,9 +224,9 @@ def main(a_intvl,width, height, display, angle1, angle2):
 
                 send_arduino(instructions)
                 print(instructions)
-        
+
             analyse += 1
-        
+
         # Augmenter / Remettre à 0 la variable compteur
         elif analyse <= a_intvl: analyse += 1; 
         else: analyse -= a_intvl;
@@ -202,11 +248,16 @@ def main(a_intvl,width, height, display, angle1, angle2):
     cv2.destroyAllWindows()
 
 
+########## INITIALISATION ##########
+
 if __name__ == "__main__":
+    
+    # Prendre ou demander les variables d'initialisation
     try: a_intvl = (int(sys.argv[1]))
     except: a_intvl = int(raw_input("Analyse interval ? "))
     try: display = bool(int(sys.argv[2]))
     except: display = bool(int(raw_input("Display ? (Y=1 / N=0) ")))
+    # Prendre par defaut 480x640 comme dimension de la video
     try: width = (int(sys.argv[3]))
     except: width = 640
     try: height = (int(sys.argv[4]))
