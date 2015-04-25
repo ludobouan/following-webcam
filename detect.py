@@ -5,12 +5,12 @@
 ####################
 
 
-# Importer les modules et biblioteques necessaires
+# Importer les modules et bibliotèques nécessaires
 import sys
 import serial
 import cv2
 
-# Parametres de connexion avec le port serial
+# Paramêtres de connexion avec le port serial
 ser = serial.Serial('COM3', 115200)
 
 
@@ -26,7 +26,7 @@ def findfaces(grayframe):
     -----------------------------------------
     '''
     return faceCascade.detectMultiScale(
-                grayframe,                          # Image à analysé
+                grayframe,                          # Image à analyser
                 scaleFactor=1.2,                    # Facteur d'agrandissement
                 minNeighbors=5,                     # Nombre minimale de voisins
                 minSize=(60, 60),                   # Taille minimum d'un visage
@@ -42,7 +42,7 @@ def findeyes (grayframe):
     ----------------------------------------
     '''
     return eyesCascade.detectMultiScale(
-                grayframe,                          # Image à analysé
+                grayframe,                          # Image à analyser
                 scaleFactor=1.3,                    # Facteur d'agrandissement
                 minNeighbors=5,                     # Nombre minimale de voisins
                 minSize=(20, 20),                   # Taille minimum d'un visage
@@ -62,7 +62,7 @@ def disp(frame, faces, eyes):
     '''
     # Si il n'y a pas de visages
     if len(faces) == 0:
-        # Encadrer en jaune tout les yeux detectés (le cadre a pour epaisseur 2 pixels)
+        # Encadrer en jaune tout les yeux detectés (le cadre fait 2 pixels d'épaisseur)
         for(ex,ey,ew,eh) in eyes:
             cv2.rectangle(frame,(ex,ey),(ex+ew,ey+eh),(255,255,0),2)
 
@@ -95,7 +95,7 @@ def offset(centers, elements):
     Sortie: Liste de decalages (liste de tuples)
     ----------------------------------------
     '''
-    # Creer des list vides
+    # Creer des listes vides
     xoff = list()
     yoff = list()
 
@@ -104,38 +104,38 @@ def offset(centers, elements):
         xoff = xoff + [x+(w/2)-centers[0]]
         yoff = yoff + [y+(h/2)-centers[1]]
 
-    # Renvoyer une list de tuple dans lequel le ieme tuple contient le ieme element de xoff et le ieme element de yoff
+    # Renvoyer une liste de tuple dans lequel le ieme tuple contient le ieme element de xoff et le ieme element de yoff
     return zip(xoff,yoff)
 
 def mvt_filter(offset):
     '''
     Description: Renvoi le decalage seulement si il est assez important
     ----------------------------------------
-    Entrée: Decalage (liste de tuples)
-    Sortie: Decalage (liste de tuples) ou rien
+    Entrée: Décalage (liste de tuples)
+    Sortie: Décalage (liste de tuples) ou rien
     ----------------------------------------
     '''
-    # Creer une list vide
+    # Creer une liste vide
     L = list()
     
-    # Pour chaque element dans la list offset
+    # Pour chaque élément dans la list offset
     for i in range(len(offset)):
         if len(offset[i]) > 0:
-            # Si le decalage en x de cet element est superieur a 10, rt1 prend la valeur de ce décalage, sinon 0
+            # Si le décalage en x de cet element est superieur à 10, rt1 prend la valeur de ce décalage, sinon 0
             if abs(offset[i][0]) > 10: rt1 = offset[i][0]
             else: rt1 = 0
-            # Si le decalage en y de cet element est superieur a 10, rt2 prend la valeur de ce décalage, sinon 0
+            # Si le décalage en y de cet element est superieur à 10, rt2 prend la valeur de ce décalage, sinon 0
             if abs(offset[i][1]) > 10: rt2 = offset[i][1]
             else: rt2 = 0
             
-            # Si rt1 ou rt2 different de 0, ajouter ce couple à la list L
+            # Si rt1 ou rt2 different de 0, ajouter ce couple à la liste L
             if rt1 != 0 or rt2 != 0: L = L + [(rt1,rt2)]
 
     if L != list(): return L
 
 def send_arduino(instructions):
     '''
-    Description: Etabli la connection avec le port serial et envoi le string fourni
+    Description: Etablie la connection avec le port serial et envoi le string fourni
     ----------------------------------------
     Input: Instructions (string)
     Output: Serial
@@ -149,7 +149,7 @@ def send_arduino(instructions):
 
 def main(a_intvl,width, height, display, angle1, angle2):
 
-    # Faire des cascades des variables globals
+    # Faire des cascades des variables globales
     global faceCascade
     global eyesCascade
 
@@ -157,27 +157,27 @@ def main(a_intvl,width, height, display, angle1, angle2):
     faceCascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
     eyesCascade = cv2.CascadeClassifier('haarcascade_eye.xml')
 
-    # Definir la constante de proportionalité k
+    # Définir la constante de proportionalité k
     # Cette valeur est obtenu expérimentalement
-    k = 0.07
+    k = 0.0432
 
-    # Capturer la video
+    # Capturer la vidéo
     vid = cv2.VideoCapture(0)
 
-    # Definir les dimensions de la video
+    # Définir les dimensions de la vidéo
     vid.set(3,width)
     vid.set(4,height)
 
-    # Defini le compteur
+    # Défini le compteur
     analyse = 1
 
-    # Boucle infini (interrompu par l'utilisateur par la touche 'q')
+    # Boucle infini (interrompu par l'utilisateur par la touche 'Q')
     while True:
 
         # Lire la video image par image
         ret, frame = vid.read()
 
-        # Si l'image est à analysé
+        # Si l'image est à analyser
         if analyse == 1:
 
             # Faire une copie de l'image en nuances de gris
@@ -196,19 +196,19 @@ def main(a_intvl,width, height, display, angle1, angle2):
                     fsection_grayframe = grayframe[yf:yf+hf, xf:xf+wf]
                     eyes = findeyes(fsection_grayframe)
 
-            # Definir f comme la list des decalages seulement si le decalage est assez important
+            # Definir f comme la liste des décalages seulement si le décalage est assez important
             f = mvt_filter(offset(center(width, height), faces))
 
             # Si f existe
             if f: 
 
                 ##### Methode 2 #####
-                #Selon le sign du decalage, diminuer ou augmenter l'angle
+                #Selon le signe du decalage, diminuer ou augmenter l'angle
 #                if f[0][0] > 0: angle1 -= 10
 #                elif f[0][0] < 0: angle1 += 10
 
                 ##### Methode 1 #####
-                # Calculer de la moyenne des decalages horizontaux
+                # Calculer de la moyenne des décalages horizontaux
                 # Multiplier cette moyenne par k
                 # Arrondir ce resultat et la soustraire a l'angle du moteur 
                 angle1 -= int(k*(sum([f[n][0] for n in range(len(f))])/len(f)))              
@@ -231,18 +231,18 @@ def main(a_intvl,width, height, display, angle1, angle2):
         elif analyse <= a_intvl: analyse += 1; 
         else: analyse -= a_intvl;
 
-        # Encadrer les elements detectés
+        # Encadrer les éléments détectés
         disp(frame, faces, eyes)
 
         # Afficher l'image analysée
         if display:
             cv2.imshow('Video', frame)
 
-        # Quitter la boucle quand la touche 'q' est enfoncée
+        # Quitter la boucle quand la touche 'Q' est enfoncée
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
-    # Quand tout est finie, fermer l'affichage et detruire les variables
+    # Quand tout est fini, fermer l'affichage et libérer la mémoire
     ser.close()
     video_capture.release()
     cv2.destroyAllWindows()
